@@ -15,17 +15,20 @@ class Config {
     /// @brief The URL of the Activity Watch API.
     std::string url = "http://127.0.0.1:5600/api/0";
 
+    /// @brief List of properties to send with each heartbeat.
+    properties_t properties = {"filename", "media-title"};
+
     std::string log_level = "error";
 
     Config() = default;
 
     Config(unsigned int poll_time, unsigned int pulse_time, std::string url,
-           std::string log_level)
+           std::string log_level, properties_t properties)
         : poll_time(poll_time), pulse_time(pulse_time), url(std::move(url)),
-          log_level(std::move(log_level)) {}
+          log_level(std::move(log_level)), properties(std::move(properties)) {}
 
     NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(Config, poll_time, pulse_time,
-                                                url, log_level)
+                                                url, log_level, properties)
 };
 
 /**

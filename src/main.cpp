@@ -9,6 +9,55 @@ using namespace std::chrono_literals;
 
 #define MS_BEFORE_NEXT_STOP_REQUESTED_CHECK 200
 
+/// @brief Logger for `loop` thread.
+thread_local logging::Logger *logger = nullptr;
+
+void cleanup() {
+    if (logger) {
+        delete logger;
+        logger = nullptr;
+    }
+}
+
+/**
+ * @brief Verify that the given properties exist in mpv.
+ *
+ * @param mpv mpv handle.
+ * @param properties List of properties.
+ * @returns A list of the properties that exist.
+ */
+properties_t validate_properties(mpv_handle *mpv, properties_t properties) {
+    mpv_node properties_node;
+    int res = mpv_get_property(mpv, "property-list", MPV_FORMAT_NODE,
+                               &properties_node);
+    if (res != MPV_ERROR_SUCCESS) {
+        // TODO: retry, because it might fail if called before mpv is ready
+        logger->fatal("Could not get property-list: {}.",
+                      mpv_error_string(res));
+        return properties_t{};
+    }
+
+    properties_t properties_list;
+    for (int i = 0; i < properties_node.u.list->num; i++) {
+        properties_list.push_back(properties_node.u.list->values[i].u.string);
+    }
+    mpv_free_node_contents(&properties_node);
+
+    properties_t ret;
+    for (std::string property : properties) {
+        if (std::find(properties_list.begin(), properties_list.end(),
+                      property) == properties_list.end()) {
+            logger->error("Property '{}' doesn't exist.", property);
+            continue;
+        }
+
+        ret.push_back(property);
+        logger->info("Property '{}' exist.", property);
+    }
+
+    return ret;
+}
+
 /**
  * @brief Main loop.
  *
@@ -22,31 +71,42 @@ void loop(std::stop_token stop_token, mpv_handle *mpv) {
 
     // TODO: get msg-level property from mpv to setup logging level before
     // loading config (`--msg-level=aw_watcher_mpv=info` for example)
-    logging::Logger logger = logging::Logger(client_name);
+    logger = new logging::Logger(client_name);
 
     // logger.debug("Loading config...");
     config::Config config = config::get_config(client_name);
 
-    logger.set_level(config.log_level.c_str());
+    logger->set_level(config.log_level.c_str());
 
-    logger.info("Config loaded:");
-    logger.info("\turl: {}", config.url);
-    logger.info("\tpoll_time: {}", config.poll_time);
-    logger.info("\tpulse_time: {}", config.pulse_time);
-    logger.info("\tlog_level: {}", config.log_level);
+    logger->info("Config loaded:");
+    logger->info("\turl: {}", config.url);
+    logger->info("\tpoll_time: {}", config.poll_time);
+    logger->info("\tpulse_time: {}", config.pulse_time);
+    logger->info("\tlog_level: {}", config.log_level);
+
+    logger->debug("Validating properties.");
+
+    properties_t properties = validate_properties(mpv, config.properties);
+    if (properties.empty()) {
+        logger->fatal("The list of properties is empty.");
+        cleanup();
+        return;
+    }
 
     const int loops_needed_for_heartbeat =
         (config.poll_time * 1000) / MS_BEFORE_NEXT_STOP_REQUESTED_CHECK;
-    logger.debug("Loops needed for heartbeat: {}.", loops_needed_for_heartbeat);
+    logger->debug("Loops needed for heartbeat: {}.",
+                  loops_needed_for_heartbeat);
 
-    logger.debug("Creating bucket...");
+    logger->debug("Creating bucket...");
 
     aw_client::Client client("aw-watcher-mpv", config.url);
     if (!client.create_bucket(client.get_default_id(), "currently-playing")) {
-        logger.fatal("Failed to create bucket: {}.", client.get_last_error());
+        logger->fatal("Failed to create bucket: {}.", client.get_last_error());
+        cleanup();
         return;
     }
-    logger.info("Bucket created: {}.", client.get_default_id());
+    logger->info("Bucket created: {}.", client.get_default_id());
 
     // Mpv needs to wait for our plugin to stop before fully shutting down.
     // Since we want to abort the loop as soon as possible, the "stop
@@ -58,7 +118,8 @@ void loop(std::stop_token stop_token, mpv_handle *mpv) {
         // If `mpv_get_property` fails, we try again the next loop. But it
         // shouldn't fail multiple times in a row.
         if (loops_since_last_heartbeat > (loops_needed_for_heartbeat * 2)) {
-            logger.fatal("Max retries reached. Something is very wrong.");
+            logger->fatal("Max retries reached. Something is very wrong.");
+            cleanup();
             return;
         }
 
@@ -66,8 +127,6 @@ void loop(std::stop_token stop_token, mpv_handle *mpv) {
             std::chrono::milliseconds(MS_BEFORE_NEXT_STOP_REQUESTED_CHECK));
         if (loops_since_last_heartbeat < loops_needed_for_heartbeat)
             continue;
-
-        int res;
 
         // We use `core-idle` instead of `pause` because it's "more accurate".
         //
@@ -79,10 +138,10 @@ void loop(std::stop_token stop_token, mpv_handle *mpv) {
         // or if nothing is playing at all. In other words, it's only no/false
         // if there's actually no video playing.
         int paused;
-        res = mpv_get_property(mpv, "core-idle", MPV_FORMAT_FLAG, &paused);
-        if ((res != MPV_ERROR_SUCCESS)) {
-            logger.error("Could not get pause property: {}.",
-                         mpv_error_string(res));
+        int res = mpv_get_property(mpv, "core-idle", MPV_FORMAT_FLAG, &paused);
+        if (res != MPV_ERROR_SUCCESS) {
+            logger->error("Could not get pause property: {}.",
+                          mpv_error_string(res));
             continue;
         }
 
@@ -92,38 +151,36 @@ void loop(std::stop_token stop_token, mpv_handle *mpv) {
             continue;
         }
 
-        char *ptr_filename;
-        res =
-            mpv_get_property(mpv, "filename", MPV_FORMAT_STRING, &ptr_filename);
-        if ((res != MPV_ERROR_SUCCESS)) {
-            logger.error("Could not get filename property: {}.",
-                         mpv_error_string(res));
+        logger->debug("Preparing heartbeat.");
+
+        json data{};
+        for (const std::string property : properties) {
+            char *value;
+            int res = mpv_get_property(mpv, property.c_str(), MPV_FORMAT_STRING,
+                                       &value);
+            if (res != MPV_ERROR_SUCCESS) {
+                logger->error("Could not get property: {}.",
+                              mpv_error_string(res));
+                continue;
+            }
+            data[property] = std::string(value);
+            mpv_free(value);
+        }
+
+        if (data.empty()) {
+            logger->error("Heartbeat data is empty.");
             continue;
         }
-        const std::string filename(ptr_filename);
-        mpv_free(ptr_filename);
 
-        char *ptr_title;
-        res =
-            mpv_get_property(mpv, "media-title", MPV_FORMAT_STRING, &ptr_title);
-        if ((res != MPV_ERROR_SUCCESS)) {
-            logger.error("Could not get media-title property: {}.",
-                         mpv_error_string(res));
-            continue;
-        }
-        const std::string title(ptr_title);
-        mpv_free(ptr_title);
+        logger->debug("Sending heartbeat.");
 
-        logger.debug("Sending heartbeat.");
-
-        json data{{"filename", filename}, {"title", title}};
         if (!client.heartbeat(client.get_default_id(), config.pulse_time,
                               data)) {
-            logger.error("Could not send heartbeat: {}.",
-                         client.get_last_error());
+            logger->error("Could not send heartbeat: {}.",
+                          client.get_last_error());
             continue;
         }
-        logger.info("Heartbeat sent: {}", data.dump());
+        logger->info("Heartbeat sent: {}", data.dump());
 
         loops_since_last_heartbeat = 0;
     }
