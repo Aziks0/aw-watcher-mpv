@@ -28,10 +28,8 @@ else()
     message(FATAL_ERROR "Unsupported compiler")
 endif()
 
-# We want static linking on windows
-if(WIN32)
-    set(BUILD_SHARED_LIBS OFF)
-endif()
+# We want static linking
+set(BUILD_SHARED_LIBS OFF)
 
 # Build libraries only if they are not installed
 FetchContent_Declare(cpr
@@ -43,6 +41,11 @@ FetchContent_Declare(nlohmann_json
     DOWNLOAD_EXTRACT_TIMESTAMP ON
 )
 FetchContent_MakeAvailable(nlohmann_json cpr)
+
+if(UNIX)
+    # We get `relocation` error otherwise
+    set_property(TARGET cpr PROPERTY POSITION_INDEPENDENT_CODE ON)
+endif()
 
 add_library(aw_watcher_mpv SHARED
     src/aw_client.cpp
