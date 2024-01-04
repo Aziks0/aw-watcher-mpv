@@ -1,0 +1,41 @@
+# SPDX-FileCopyrightText: 2024 Benjamin DIDIER <contact@aziks.aleeas.com>
+#
+# SPDX-License-Identifier: MPL-2.0
+
+name: draft-release
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Run id of the workflow run used to pull artifact from
+        required: true
+
+jobs:
+  draft-release:
+    permissions:
+      contents: write
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: dawidd6/action-download-artifact@v3
+        with:
+          path: artifacts
+          workflow: build.yml
+          workflow_conclusion: success
+          run_id: ${{ github.event.inputs.run_id }}
+
+      - name: Package release
+        run: .github/workflows/package-release.sh
+
+      - name: Create draft release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: ${{ github.event.inputs.run_id }}
+          draft: true
+          files: release/*

@@ -1,0 +1,67 @@
+# SPDX-FileCopyrightText: 2024 Benjamin DIDIER <contact@aziks.aleeas.com>
+#
+# SPDX-License-Identifier: MPL-2.0
+
+name: build
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  windows:
+    runs-on: windows-2022
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build
+        shell: bash
+        run: |
+          mkdir build && cd build
+          cmake -DCMAKE_BUILD_TYPE=RELEASE -G "Visual Studio 17 2022" -T \
+            host=x86 -A x64 ..
+          cmake --build . --config Release
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: aw-watcher-mpv-windows
+          path: build/release/aw_watcher_mpv.dll
+          if-no-files-found: error
+
+  linux:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      # We need g++-13 and it's only available in the
+      # `ppa:ubuntu-toolchain-r/test` repository for ubuntu-22.04.
+      # It should be pre-installed on github-hosted runners tho.
+      - name: Install dependencies
+        run: |
+          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake ninja-build \
+            gcc-13 g++-13 pkg-config curl libcurl4-openssl-dev
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 \
+            100 --slave /usr/bin/g++ g++ /usr/bin/g++-13
+
+      - name: Build
+        run: |
+          mkdir build && cd build
+          cmake -DCMAKE_BUILD_TYPE=RELEASE -DCPR_USE_SYSTEM_CURL=ON -G Ninja ..
+          cmake --build .
+          mv libaw_watcher_mpv.so aw_watcher_mpv.so
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: aw-watcher-mpv-linux
+          path: build/aw_watcher_mpv.so
+          if-no-files-found: error
