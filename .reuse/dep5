@@ -1,0 +1,8 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: aw-watcher-mpv
+Upstream-Contact: Benjamin DIDIER <contact@aziks.aleeas.com>
+Source: https://github.com/Aziks0/aw-watcher-mpv
+
+Files: third_party/*/version.txt
+Copyright: 2024 Benjamin DIDIER <contact@aziks.aleeas.com>
+License: CC0-1.0

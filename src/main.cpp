@@ -1,3 +1,9 @@
+/**
+ * SPDX-FileCopyrightText: 2024 Benjamin DIDIER <contact@aziks.aleeas.com>
+ *
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 #include <thread>
 
 #include "main.hpp"

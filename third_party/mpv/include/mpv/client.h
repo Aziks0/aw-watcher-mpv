@@ -1,3 +1,9 @@
+/**
+ * SPDX-FileCopyrightText: 2017 the mpv developers
+ *
+ * SPDX-License-Identifier: ISC
+ */
+
 /* Copyright (C) 2017 the mpv developers
  *
  * Permission to use, copy, modify, and/or distribute this software for any

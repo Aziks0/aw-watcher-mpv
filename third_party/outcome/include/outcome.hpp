@@ -1,3 +1,9 @@
+/**
+ * SPDX-FileCopyrightText: 2024 Niall Douglas <http://www.nedproductions.biz>
+ *
+ * SPDX-License-Identifier: Apache-2.0 OR BSL-1.0
+ */
+
 /* Include the default amount of outcome
 (C) 2018-2021 Niall Douglas <http://www.nedproductions.biz/> (4 commits)
 File Created: Mar 2018
