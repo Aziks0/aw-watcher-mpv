@@ -73,7 +73,8 @@ void loop(std::stop_token stop_token, mpv_handle *mpv) {
     // loading config (`--msg-level=aw_watcher_mpv=info` for example)
     logger = new logging::Logger(client_name);
 
-    // logger.debug("Loading config...");
+    logger->info("Loading config.");
+
     config::Config config = config::get_config(client_name);
 
     logger->set_level(config.log_level.c_str());
@@ -98,7 +99,7 @@ void loop(std::stop_token stop_token, mpv_handle *mpv) {
     logger->debug("Loops needed for heartbeat: {}.",
                   loops_needed_for_heartbeat);
 
-    logger->debug("Creating bucket...");
+    logger->debug("Creating bucket.");
 
     aw_client::Client client("aw-watcher-mpv", config.url);
     aw_client::result_t res_bucket =
