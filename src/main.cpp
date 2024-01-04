@@ -100,7 +100,7 @@ void loop(std::stop_token stop_token, mpv_handle *mpv) {
         return;
     }
 
-    const int loops_needed_for_heartbeat =
+    const unsigned int loops_needed_for_heartbeat =
         (config.poll_time * 1000) / MS_BEFORE_NEXT_STOP_REQUESTED_CHECK;
     logger->debug("Loops needed for heartbeat: {}.",
                   loops_needed_for_heartbeat);
