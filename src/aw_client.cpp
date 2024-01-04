@@ -35,7 +35,7 @@ result_t Client::create_bucket(std::string id, std::string type) {
     return get_potential_cpr_error(response);
 }
 
-result_t Client::heartbeat(std::string id, float pulsetime, json data) {
+result_t Client::heartbeat(std::string id, unsigned int pulsetime, json data) {
     // ISO 8601 format
     const std::string timestamp =
         std::format("{:%FT%TZ}", std::chrono::utc_clock::now());

@@ -30,7 +30,7 @@ class Client {
 
     result_t create_bucket(std::string id, std::string type);
 
-    result_t heartbeat(std::string id, float pulsetime, json data);
+    result_t heartbeat(std::string id, unsigned int pulsetime, json data);
 };
 
 } // namespace aw_client
