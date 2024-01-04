@@ -52,6 +52,7 @@ add_library(aw_watcher_mpv SHARED
 target_include_directories(aw_watcher_mpv PRIVATE
     src
     third_party/mpv/include
+    third_party/outcome/include
 )
 target_link_libraries(aw_watcher_mpv PRIVATE
     cpr::cpr
