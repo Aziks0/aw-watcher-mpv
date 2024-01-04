@@ -101,8 +101,10 @@ void loop(std::stop_token stop_token, mpv_handle *mpv) {
     logger->debug("Creating bucket...");
 
     aw_client::Client client("aw-watcher-mpv", config.url);
-    if (!client.create_bucket(client.get_default_id(), "currently-playing")) {
-        logger->fatal("Failed to create bucket: {}.", client.get_last_error());
+    aw_client::result_t res_bucket =
+        client.create_bucket(client.get_default_id(), "currently-playing");
+    if (res_bucket.has_error()) {
+        logger->fatal("Failed to create bucket: {}.", res_bucket.error());
         cleanup();
         return;
     }
@@ -174,10 +176,11 @@ void loop(std::stop_token stop_token, mpv_handle *mpv) {
 
         logger->debug("Sending heartbeat.");
 
-        if (!client.heartbeat(client.get_default_id(), config.pulse_time,
-                              data)) {
+        aw_client::result_t res_heartbeat =
+            client.heartbeat(client.get_default_id(), config.pulse_time, data);
+        if (res_heartbeat.has_error()) {
             logger->error("Could not send heartbeat: {}.",
-                          client.get_last_error());
+                          res_heartbeat.error());
             continue;
         }
         logger->info("Heartbeat sent: {}", data.dump());

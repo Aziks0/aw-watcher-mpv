@@ -12,4 +12,8 @@
 
 using json = nlohmann::json;
 
+#include <outcome.hpp>
+
+namespace outcome = OUTCOME_V2_NAMESPACE;
+
 typedef std::vector<std::string> properties_t;
