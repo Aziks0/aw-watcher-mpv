@@ -145,7 +145,7 @@ void loop(std::stop_token stop_token, mpv_handle *mpv) {
         // special situations, such as when the player pauses itself due to low
         // network cache. This also returns yes/true if playback is restarting
         // or if nothing is playing at all. In other words, it's only no/false
-        // if there's actually no video playing.
+        // if there's actually video playing.
         int paused;
         int res = mpv_get_property(mpv, "core-idle", MPV_FORMAT_FLAG, &paused);
         if (res != MPV_ERROR_SUCCESS) {
