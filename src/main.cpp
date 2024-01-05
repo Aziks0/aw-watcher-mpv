@@ -210,9 +210,7 @@ int mpv_open_cplugin(mpv_handle *mpv) {
     std::jthread thread(loop, mpv);
 
     while (true) {
-        // We shouldn't use a timeout other than 0 because `mpv_wait_event`
-        // locks onto the mpv handle (?) but we need it in `loop`
-        mpv_event *event = mpv_wait_event(mpv, 0);
+        mpv_event *event = mpv_wait_event(mpv, -1);
         if (event->event_id == MPV_EVENT_SHUTDOWN) {
             break;
         }
