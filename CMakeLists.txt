@@ -6,7 +6,7 @@ cmake_minimum_required(VERSION 3.14)
 
 include(FetchContent)
 
-project(aw_watcher_mpv VERSION 1.0.0 LANGUAGES CXX)
+project(aw_watcher_mpv VERSION 1.0.1 LANGUAGES CXX)
 
 # We need c++20 for `std::jthread`, `std::format` and `std::chrono::utc_clock`.
 # It is supported by GCC 13, Clang 18 and MSVC 19.29.
