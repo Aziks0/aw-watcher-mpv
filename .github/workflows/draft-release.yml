@@ -23,6 +23,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Verify version bump
+        run: .github/workflows/verify-version-bump.sh
+
       - uses: dawidd6/action-download-artifact@v3
         with:
           path: artifacts
